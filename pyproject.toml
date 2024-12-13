@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "phase-shifting-interferometry"
+name = "off-axis-interferometry"
 version = "0.1.0"
 description = ""
 authors = ["ayibogucu <ismail.inal999@gmail.com>"]

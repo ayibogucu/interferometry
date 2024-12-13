@@ -1,32 +1,33 @@
 # STEPS OF THE CODE
 
-## take image input
+## Take image input
 
-The image is taken as 2darray.
+The image batch is taken as 3darray.
 
-## preprocess images
+## Preprocess images
 
 The image is normalized and then noise reduction is applied.
 
-## phase extraction (with masking)
+## Phase Algorithms
 
-Fft is applied then masking is applied discarding the DC and the conjugate term
+## Unwrap phase
 
-## unwrap phase
+## Calculate ODP
 
-Phase is unwrapped
+$$ \alpha = 2\pi \cdot OPD \cdot  \frac{\Delta v}{c} $$
 
-## phase to dh
-
-OPD is calculated for dh
-
-## plot
+## Plot
 
 The outputs are plotted
 
-## performance increase options
+## Error sources
 
-Can be parallelized with batches and shit. Saving the input as 3darray as a batch of 2d images.
+## Output increase options
+
+## Performance increase options
+
+Can be parallelized with batches and shit.
+Saving the input as 3darray as a batch of 2d images.
 ROI can be used before everything else to save compute.
 Filtering can be after fft for frequency domain filtering.
 GPU acceleration. (cuPy)
