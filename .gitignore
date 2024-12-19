@@ -2,4 +2,5 @@
 .venv
 data/
 paper/
+__pycache__/
 
