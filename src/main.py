@@ -8,7 +8,7 @@ def main():
     BATCH_SIZE = 4
     MASK_RADIUS = 32
     WAVELENGTH = 700e-9
-    DIR_PATH = r"data/"
+    DIR_PATH = r"off-axis-data/"
 
     all_files = get_files_recursive(DIR_PATH)
     for idx in range(0, len(all_files), BATCH_SIZE):

@@ -1,7 +1,7 @@
 *.pdf
 .venv
-data/
+off-axis-data/
 paper/
 __pycache__/
-data_phase_shifting/
+phase-shifting-data/
 
