@@ -1,3 +1,5 @@
 *.pdf
 .venv
+data/
+paper/
 
