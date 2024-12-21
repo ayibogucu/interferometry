@@ -2,10 +2,6 @@ import numpy as np
 import cv2
 
 
-def OPD(phase_batch, wavelength):
-    return np.multiply(phase_batch, wavelength) / (2 * np.pi)
-
-
 def fft_batch(array_batch: np.ndarray, radius: int):
     batch_size, height, width = array_batch.shape
 
