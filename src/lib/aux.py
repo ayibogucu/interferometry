@@ -2,6 +2,9 @@ import cv2
 import numpy as np
 import cupy as cp
 import os
+import matplotlib.pyplot as plt
+from matplotlib.widgets import Button
+# from mpl_toolkits.mplot3d import Axes3D
 # import cucim
 
 
@@ -54,46 +57,135 @@ def get_files_recursive(directory):
     return all_files
 
 
-def plot_batch(
-    array_batch, window_name: str, display_time: int = 0, auto_close: bool = False
-):
+def plot_batch(image_list, figsize=(6, 6), cmap="gray", titles=None):
     """
-    Displays a batch of images in a window with a specified display time for each image.
+    Plots a series of 2D numpy arrays (images) interactively, showing one image at a time.
 
     Parameters:
-        array_batch (list of np.ndarray): List of images to display.
-        window_name (str): Name of the display window.
-        display_time (int): Time in milliseconds to display each image. 0 means wait for a key press.
-        auto_close (bool): Whether to automatically close the window after displaying images.
+        image_list (list of np.ndarray): List of 2D numpy arrays to be plotted.
+        figsize (tuple): Figure size for the matplotlib figure.
+        cmap (str): Colormap to be used for plotting images (default is 'gray').
+        titles (list of str): Optional list of titles for each image.
+
+    Raises:
+        ValueError: If image_list is empty or if any element is not a 2D numpy array.
     """
-    cv2.namedWindow(window_name, cv2.WINDOW_AUTOSIZE)
 
-    for array in array_batch:
-        # Normalize image for display
-        array_normalized = cv2.normalize(
-            src=array,
-            dst=None,
-            alpha=0,
-            beta=255,
-            norm_type=cv2.NORM_MINMAX,
-            dtype=cv2.CV_8U,
-        ).astype("uint8")
+    # Initialize state
+    current_index = [0]  # Use a mutable object to track index across button callbacks
+    n_images = len(image_list)
 
-        # Show the image
-        cv2.imshow(window_name, array_normalized)
+    # Create the figure and axis
+    fig, ax = plt.subplots(figsize=figsize)
+    plt.subplots_adjust(bottom=0.2)  # Leave space for buttons
 
-        while True:
-            # Check for key press or timeout
-            key = cv2.waitKey(display_time if display_time > 0 else 1)
-            if key == 27:  # Exit if 'Esc' key is pressed
-                return
-            # Check if the window was closed manually
-            if cv2.getWindowProperty(window_name, cv2.WND_PROP_VISIBLE) < 1:
-                return
-            # Break the loop for this image if no timeout was set
-            if display_time > 0:
-                break
+    # Display the initial image
+    img_display = ax.imshow(image_list[current_index[0]], cmap=cmap)
+    ax.axis("off")
+    title = ax.set_title(titles[current_index[0]] if titles else "")
 
-    # Automatically close the window if specified
-    if auto_close:
-        cv2.destroyWindow(window_name)
+    # Button click event handlers
+    def next_image(event):
+        current_index[0] = (current_index[0] + 1) % n_images
+        update_image()
+
+    def prev_image(event):
+        current_index[0] = (current_index[0] - 1) % n_images
+        update_image()
+
+    def update_image():
+        img_display.set_data(image_list[current_index[0]])
+        title.set_text(titles[current_index[0]] if titles else "")
+        fig.canvas.draw_idle()
+
+    # Add buttons
+    axprev = plt.axes([0.2, 0.05, 0.2, 0.075])  # Position for previous button
+    axnext = plt.axes([0.6, 0.05, 0.2, 0.075])  # Position for next button
+
+    bnext = Button(axnext, "Next")
+    bprev = Button(axprev, "Previous")
+
+    bnext.on_clicked(next_image)
+    bprev.on_clicked(prev_image)
+
+    plt.show()
+
+
+def plot_batch_3d_heightmaps(heightmaps):
+    """
+    Plots a batch of 3D heightmaps interactively, showing one heightmap at a time.
+
+    Parameters:
+        heightmaps (list of 2D np.ndarray): A list of 2D arrays representing the heightmaps.
+
+    Raises:
+        ValueError: If heightmaps is empty or if any element is not a 2D numpy array.
+    """
+    # Initialize state
+    current_index = [0]
+    n_heightmaps = len(heightmaps)
+
+    # Create the figure
+    fig = plt.figure(figsize=(10, 7))
+    ax = fig.add_subplot(111, projection="3d")
+    plt.subplots_adjust(bottom=0.2, right=0.8)  # Leave space for buttons and colorbar
+
+    # Create a separate axis for the colorbar
+    cbar_ax = fig.add_axes([0.85, 0.3, 0.03, 0.4])  # Position for the colorbar
+
+    # Generate the meshgrid for coordinates (use the first heightmap as reference)
+    rows, cols = heightmaps[0].shape
+    x = np.linspace(-cols / 2, cols / 2, cols)
+    y = np.linspace(-rows / 2, rows / 2, rows)
+    x, y = np.meshgrid(x, y)
+
+    # Display the initial heightmap
+    surface = [
+        ax.plot_surface(
+            x, y, heightmaps[current_index[0]], cmap="viridis", edgecolor="none"
+        )
+    ]
+    title = ax.set_title(f"3D Heightmap {current_index[0] + 1}")
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
+    ax.set_zlabel("Height (Z)")
+    colorbar = fig.colorbar(surface[0], cax=cbar_ax)
+    colorbar.set_label("Height")
+
+    # Button click event handlers
+    def next_heightmap(event):
+        current_index[0] = (current_index[0] + 1) % n_heightmaps
+        update_heightmap()
+
+    def prev_heightmap(event):
+        current_index[0] = (current_index[0] - 1) % n_heightmaps
+        update_heightmap()
+
+    def update_heightmap():
+        # Clear the axis completely
+        ax.clear()
+
+        # Plot the new heightmap
+        surface[0] = ax.plot_surface(
+            x, y, heightmaps[current_index[0]], cmap="viridis", edgecolor="none"
+        )
+        ax.set_title(f"3D Heightmap {current_index[0] + 1}")
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.set_zlabel("Height (Z)")
+
+        # Update the colorbar
+        colorbar.update_normal(surface[0])
+        fig.canvas.draw_idle()
+
+    # Add buttons
+    axprev = plt.axes([0.2, 0.05, 0.2, 0.075])  # Position for previous button
+    axnext = plt.axes([0.6, 0.05, 0.2, 0.075])  # Position for next button
+
+    bnext = Button(axnext, "Next")
+    bprev = Button(axprev, "Previous")
+
+    bnext.on_clicked(next_heightmap)
+    bprev.on_clicked(prev_heightmap)
+
+    plt.show()
