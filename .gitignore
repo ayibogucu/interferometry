@@ -1,7 +1,6 @@
-*.pdf
-.venv
-off-axis-data/
-paper/
+.venv/
 __pycache__/
-phase-shifting-data/
-src/lib/cu/
+data/ 
+.git/
+results/
+
