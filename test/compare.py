@@ -1,7 +1,7 @@
 import numpy as np
 from scipy.io import loadmat
 from cv2 import minMaxLoc
-from src.lib.plot import plot_surface
+import lib.plot as plt
 # import matplotlib.pyplot as plt
 
 python_array = np.load("./results/100.npy")
@@ -17,7 +17,7 @@ print(f"MSE: {mse},  PSNR: {psnr}")
 print(f"minimum difference is {min_val} at location {min_loc}")
 print(f"maximum difference is {max_val} at location {max_loc}")
 
-plot_surface(difference * 20)
+plt.plot_mesh(difference)
 
 
 # fig, ax = plt.subplots(2, 2, figsize=(15, 15))

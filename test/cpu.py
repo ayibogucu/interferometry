@@ -31,7 +31,7 @@ global_max_x = x_min + local_max_x
 
 # Create a mask with a circle at the detected maximum
 mask = np.zeros((height, width), dtype=np.uint8)
-cv2.circle(mask, (global_max_x, global_max_y), RAD, (1, 1, 1), -1)  # Single channel
+cv2.circle(mask, (global_max_x, global_max_y), RAD, (1, 1, 1), -1)
 
 # Apply the mask to the FFT
 fft_masked_image = fft_image * mask
@@ -89,4 +89,5 @@ ax[1, 2].axis("off")
 plt.tight_layout()
 plt.show()
 
-lib.plot.plot_surface(phase_matrix_unwrapped * 20)
+# Display the 3d surface plot
+lib.plot.plot_mesh(phase_matrix_unwrapped)
