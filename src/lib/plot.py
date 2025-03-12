@@ -1,8 +1,9 @@
 import sys
-from vispy import app, scene
-from vispy.geometry import MeshData
-from vispy.color import get_colormap
+
 import numpy as np
+from vispy import app, scene
+from vispy.color import get_colormap
+from vispy.geometry import MeshData
 
 
 def plot_mesh(image: np.ndarray):
