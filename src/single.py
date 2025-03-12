@@ -1,14 +1,15 @@
 import numpy as np
-import cv2
 from skimage.restoration import unwrap_phase
+
 import matplotlib.pyplot as plt
 import tifffile
+
 import lib.plot
 
 RAD = 50
 LAMBDA = 671e-9
 
-image = tifffile.imread("./data/100.tiff")
+image = tifffile.imread("./data/101.tiff")
 fft_image = np.fft.fft2(image)
 
 height, width = fft_image.shape
@@ -22,28 +23,23 @@ y_min, y_max = cy, height
 roi = np.abs(fft_image[y_min:y_max, x_min:x_max])
 
 # Find the coordinates of the maximum value in the ROI
-_, _, _, max_loc = cv2.minMaxLoc(roi)
-local_max_x, local_max_y = max_loc
+local_max_y, local_max_x = np.unravel_index(np.argmax(roi), roi.shape)
 
 # Map back to the full image coordinates
 global_max_y = y_min + local_max_y
 global_max_x = x_min + local_max_x
 
 # Create a mask with a circle at the detected maximum
-mask = np.zeros((height, width), dtype=np.uint8)
-cv2.circle(mask, (global_max_x, global_max_y), RAD, (1, 1, 1), -1)
-
-# Apply the mask to the FFT
-fft_masked_image = fft_image * mask
+y, x = np.ogrid[:height, :width]
+dist_sq = (y - global_max_y) ** 2 + (x - global_max_x) ** 2
+fft_image[dist_sq > RAD**2] = 0
 
 # Compute the shift needed to move the sideband to the center
 shift_y = -global_max_y
 shift_x = -global_max_x
 
 # Shift the FFT to center the sideband
-fft_centered_image = np.roll(
-    np.roll(fft_masked_image, shift_y, axis=0), shift_x, axis=1
-)
+fft_centered_image = np.roll(np.roll(fft_image, shift_y, axis=0), shift_x, axis=1)
 
 # Perform inverse FFT
 ifft_centered_image = np.fft.ifft2(fft_centered_image)
@@ -51,7 +47,7 @@ ifft_centered_image = np.fft.ifft2(fft_centered_image)
 # Calculate the phase and unwrap it
 phase_matrix = np.angle(ifft_centered_image)
 phase_matrix_unwrapped = unwrap_phase(phase_matrix)
-height_matrix = (phase_matrix_unwrapped * LAMBDA) / (2 * np.pi)
+height_matrix = phase_matrix_unwrapped * LAMBDA * 0.15915494309189535
 
 # Visualizations
 fig, ax = plt.subplots(2, 3, figsize=(15, 10))
@@ -65,11 +61,6 @@ ax[0, 0].axis("off")
 ax[0, 1].imshow(np.log(np.abs(fft_image) + 1), cmap="gray")
 ax[0, 1].set_title("FFT Magnitude (Original)")
 ax[0, 1].axis("off")
-
-# Display the masked FFT magnitude
-ax[0, 2].imshow(np.log(np.abs(fft_masked_image) + 1), cmap="gray")
-ax[0, 2].set_title("Masked FFT Magnitude")
-ax[0, 2].axis("off")
 
 # Display the center-shifted FFT magnitude
 ax[1, 0].imshow(np.log(np.abs(fft_centered_image) + 1), cmap="gray")

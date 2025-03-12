@@ -3,4 +3,6 @@ __pycache__/
 data/ 
 .git/
 results/
+test/
+a.md
 

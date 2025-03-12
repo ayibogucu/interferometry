@@ -1,35 +1,50 @@
-import lib.phase as phase
-import lib.unwrap as unwrap
-import lib.aux as aux
-import lib.opd as opd
+import asyncio
+import glob
+import concurrent.futures
+import os
+from functools import partial
 
+import lib.phase as phase
+import lib.aux as aux
 
 BATCH_SIZE = 4
-MASK_RADIUS = 32
-WAVELENGTH = 700e-9
-DIR_PATH = r"off-axis-data/"
+MASK_RADIUS = 50
+LAMBDA = 671e-9
+DIR_PATH = r"./data/"
 
 
-def main():
-    all_files = aux.get_files_recursive(DIR_PATH)
-    for idx in range(0, len(all_files), BATCH_SIZE):
-        ## INPUT HANDLEDED IN BATCHES
-        file_path = all_files[idx : idx + BATCH_SIZE]
-        array_batch = aux.tiff_to_array_batch(file_path)
-        aux.plot_batch(array_batch)
+async def main():
+    # Ensure output directory exists.
+    os.makedirs("./output", exist_ok=True)
 
-        ## PHASE ALGORITHM
-        phase_batch = phase.fft_batch(array_batch, MASK_RADIUS)
-        aux.plot_batch(phase_batch)
+    # Discover image paths.
+    image_paths = glob.glob(os.path.join(DIR_PATH, "*.tiff"))
+    if not image_paths:
+        print("No images found in the data directory.")
+        return
 
-        ## UNWRAP
-        unwrapped_phase_batch = unwrap.quality_guided(phase_batch=phase_batch)
-        aux.plot_batch(unwrapped_phase_batch)
+    # Create asynchronous queues for the pipeline.
+    load_queue = asyncio.Queue(maxsize=5)
+    save_queue = asyncio.Queue(maxsize=5)
 
-        ##ODP
-        height_map_batch = opd.OPD(unwrapped_phase_batch, WAVELENGTH)
-        aux.plot_batch_3d_heightmaps(height_map_batch)
+    # Wrap the FFT function with additional parameters.
+    process_fn = partial(phase.fft_batch, radius=MASK_RADIUS, wavelength=LAMBDA)
+
+    # Create a ProcessPoolExecutor for CPU-bound processing.
+    proc_executor = concurrent.futures.ProcessPoolExecutor()
+
+    # Create tasks for each stage.
+    prod_task = asyncio.create_task(aux.producer(load_queue, image_paths, BATCH_SIZE))
+    proc_task = asyncio.create_task(
+        aux.processor(load_queue, save_queue, process_fn, proc_executor)
+    )
+    cons_task = asyncio.create_task(aux.consumer(save_queue))
+
+    # Wait for all tasks to complete.
+    await asyncio.gather(prod_task, proc_task, cons_task)
+    proc_executor.shutdown()
+    print("✅ Batch Processing Complete!")
 
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
