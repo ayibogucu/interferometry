@@ -34,9 +34,12 @@ def main():
 
     print("✅ Processing Complete!")
 
+    return len(image_paths)
+
 
 if __name__ == "__main__":
     start_time = time.perf_counter()
-    main()
+    imcount = main()
     end_time = time.perf_counter()
     print(f"⏱️ Execution Time: {end_time - start_time:.4f} seconds")
+    print(f"FPS: {imcount / (end_time - start_time)}")
