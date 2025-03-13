@@ -14,6 +14,8 @@ RAD = 50
 LAMBDA = 671e-9
 DIR_PATH = "./data/"
 OUTPUT_PATH = "./output/parallel_batched/"
+BATCH_SIZE = 10
+NUM_WORKERS = 12
 
 
 def modify_path(given_path: str, new_base: str) -> str:
@@ -59,7 +61,7 @@ def process_batch(batch_paths: list, rad: int, wavelength: float) -> int:
     return len(batch_paths)
 
 
-def main(batch_size: int = 10, num_workers: int = 4) -> int:
+def main() -> int:
     os.makedirs(OUTPUT_PATH, exist_ok=True)
     image_paths = glob.glob(os.path.join(DIR_PATH, "*.tiff"))
     if not image_paths:
@@ -68,12 +70,12 @@ def main(batch_size: int = 10, num_workers: int = 4) -> int:
 
     # Create batches of image paths
     batches = [
-        image_paths[i : i + batch_size] for i in range(0, len(image_paths), batch_size)
+        image_paths[i : i + BATCH_SIZE] for i in range(0, len(image_paths), BATCH_SIZE)
     ]
 
     total_processed = 0
     # Use ProcessPoolExecutor to run batches in parallel
-    with ProcessPoolExecutor(max_workers=num_workers) as executor:
+    with ProcessPoolExecutor(max_workers=NUM_WORKERS) as executor:
         futures = [
             executor.submit(process_batch, batch, RAD, LAMBDA) for batch in batches
         ]
@@ -88,12 +90,10 @@ def main(batch_size: int = 10, num_workers: int = 4) -> int:
 
 if __name__ == "__main__":
     start_time = time.perf_counter()
-    count = main(
-        batch_size=55, num_workers=12
-    )  # Adjust batch size and number of workers as needed.
+    imcount = main()
     end_time = time.perf_counter()
     total_time = end_time - start_time
     print("✅ Processing Complete!")
     print(f"⏱️ Execution Time: {total_time:.4f} seconds")
     if total_time > 0:
-        print(f"FPS: {count / total_time:.2f}")
+        print(f"FPS: {imcount / total_time:.2f}")
