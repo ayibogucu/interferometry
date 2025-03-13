@@ -1,26 +1,12 @@
-import cupy as cp
 import numpy as np
 from skimage.restoration import unwrap_phase
 
 
 def batch_fft(imgs: np.ndarray, rad: int, wavelength: float) -> np.ndarray:
-    """
-    Process a batch of images on the GPU.
-
-    Parameters:
-      imgs: np.ndarray of shape (B, H, W) containing B images.
-      rad: radius for the circular mask.
-      wavelength: wavelength constant.
-
-    Returns:
-      unwrapped: np.ndarray of shape (B, H, W) with the unwrapped phase
-                 multiplied by wavelength and a constant factor.
-    """
     # Convert the batch to a CuPy array
-    imgs_cp = cp.asarray(imgs)  # shape: (B, H, W)
 
     # Compute FFT on each image in the batch along the last two axes.
-    fft_images = cp.fft.fft2(imgs_cp, axes=(-2, -1))  # shape: (B, H, W)
+    fft_images = np.fft.fft2(imgs, axes=(-2, -1))  # shape: (B, H, W)
     B, H, W = fft_images.shape
     cy, cx = H // 2, W // 2
 
@@ -29,12 +15,12 @@ def batch_fft(imgs: np.ndarray, rad: int, wavelength: float) -> np.ndarray:
     y_min, y_max = cy, H
 
     # Compute ROI on the magnitude image in batch.
-    roi = cp.abs(fft_images[:, y_min:y_max, x_min:x_max])  # shape: (B, H-cy, cx)
+    roi = np.abs(fft_images[:, y_min:y_max, x_min:x_max])  # shape: (B, H-cy, cx)
     B, roi_h, roi_w = roi.shape
 
     # Flatten the ROI per image and find the index of the maximum value.
     roi_flat = roi.reshape(B, -1)  # shape: (B, roi_h*roi_w)
-    argmaxes = cp.argmax(roi_flat, axis=1)  # shape: (B,)
+    argmaxes = np.argmax(roi_flat, axis=1)  # shape: (B,)
 
     # Compute local (within ROI) max coordinates using division and modulo.
     local_max_y = argmaxes // roi_w
@@ -45,8 +31,8 @@ def batch_fft(imgs: np.ndarray, rad: int, wavelength: float) -> np.ndarray:
     global_max_x = x_min + local_max_x  # shape: (B,)
 
     # Create a coordinate grid for each image.
-    y_grid = cp.arange(H).reshape(1, H, 1)  # shape: (1, H, 1)
-    x_grid = cp.arange(W).reshape(1, 1, W)  # shape: (1, 1, W)
+    y_grid = np.arange(H).reshape(1, H, 1)  # shape: (1, H, 1)
+    x_grid = np.arange(W).reshape(1, 1, W)  # shape: (1, 1, W)
 
     # Expand global max coordinates to allow broadcasting.
     global_max_y_exp = global_max_y.reshape(B, 1, 1)  # shape: (B, 1, 1)
@@ -62,25 +48,25 @@ def batch_fft(imgs: np.ndarray, rad: int, wavelength: float) -> np.ndarray:
     fft_images[mask] = 0
 
     # Shift the FFT so that the detected maximum is at the origin.
-    # Since cp.roll does not support different shifts for each image in one call,
+    # Since np.roll does not support different shifts for each image in one call,
     # we loop over the batch dimension.
     fft_centered_list = []
     for i in range(B):
         shift_y = int(global_max_y[i].item())
         shift_x = int(global_max_x[i].item())
-        shifted = cp.roll(fft_images[i], shift=-shift_y, axis=0)
-        shifted = cp.roll(shifted, shift=-shift_x, axis=1)
+        shifted = np.roll(fft_images[i], shift=-shift_y, axis=0)
+        shifted = np.roll(shifted, shift=-shift_x, axis=1)
         fft_centered_list.append(shifted)
-    fft_centered = cp.stack(fft_centered_list, axis=0)  # shape: (B, H, W)
+    fft_centered = np.stack(fft_centered_list, axis=0)  # shape: (B, H, W)
 
     # Inverse FFT on the batch.
-    ifft_centered = cp.fft.ifft2(fft_centered, axes=(-2, -1))
+    ifft_centered = np.fft.ifft2(fft_centered, axes=(-2, -1))
 
     # Compute phase.
-    phase_matrix = cp.angle(ifft_centered)  # shape: (B, H, W)
+    phase_matrix = np.angle(ifft_centered)  # shape: (B, H, W)
 
-    # Convert to NumPy for phase unwrapping (skimage works on CPU).
-    phase_matrix_np = cp.asnumpy(phase_matrix)
+    # Convert to NumPy for phase unwrapping (skimage works on npU).
+    phase_matrix_np = phase_matrix
 
     # Unwrap the phase per image.
     unwrapped_list = [unwrap_phase(phase_matrix_np[i]) for i in range(B)]
