@@ -10,7 +10,7 @@ RAD = 50
 LAMBDA = 671e-9
 DIR_PATH = "./data/"
 OUTPUT_PATH = "./output/ray_workers/"
-WORKER_NUM = 4
+WORKER_NUM = 12
 
 
 def modify_path(given_path: str, new_base: str) -> str:
