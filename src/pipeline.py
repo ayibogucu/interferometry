@@ -1,20 +1,68 @@
-import os
+import argparse
 import glob
+import os
 import time
-import tifffile
+
 import numpy as np
+import tifffile
 from dask.base import compute
 from dask.delayed import delayed
 
 # Import the batched FFT function from your phase file.
 from lib.phase import batch_fft
 
-# Constants
-RAD = 50
-LAMBDA = 671e-9
-DIR_PATH = "./data/"
-OUTPUT_PATH = "./output/dask_full/"
-BATCH_SIZE = 16
+parser = argparse.ArgumentParser(
+    prog="DepthGen",
+    description="""Process interferometric data in bulk to generate height difference maps.""",
+)
+parser.add_argument(
+    "-r",
+    "--rad",
+    type=int,
+    default=50,
+    help="""The assumed radius of the sideband in the frequency domain.
+    (default: 50)""",
+)
+parser.add_argument(
+    "-w",
+    "--wavelength",
+    type=float,
+    default=671e-9,
+    help="""Wavelength of the lazer used to acquire the images.
+    (default: 671e-9)""",
+)
+parser.add_argument(
+    "-b",
+    "--batch_size",
+    type=int,
+    default=16,
+    help="""Number of images accepted by a worker at one time.
+    (default: 16)""",
+)
+parser.add_argument(
+    "-d",
+    "--dir",
+    type=str,
+    default="./data/",
+    help="""Input directory path.
+    (default: ./data/)""",
+)
+parser.add_argument(
+    "-o",
+    "--output",
+    type=str,
+    default="./output/",
+    help="""Output directory path.
+    (default: ./output/)""",
+)
+
+args = parser.parse_args()
+
+RAD = args.rad
+LAMBDA = args.wavelength
+BATCH_SIZE = args.batch_size
+DIR_PATH = args.dir
+OUTPUT_PATH = args.output
 
 
 def modify_path(given_path: str, new_base: str) -> str:
